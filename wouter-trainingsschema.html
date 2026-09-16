@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema Wouter - tal&coaching</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#2D4A3E;--cream:#FDFBF3;--gold:#C97B1A;--teal:#2A7A8C;--muted:#6b7c76;--border:#ddd8cc;--white:#fff;--rose:#9B4F6A;--up:#27ae60;--dn:#e74c3c}
+body{background:var(--cream);font-family:'Nunito',sans-serif;font-size:14px;color:var(--green);min-height:100vh}
+#loginScreen{display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+#loginScreen.show{display:flex}
+.lcard{background:var(--white);border-radius:20px;max-width:380px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden}
+.lcard-top{background:var(--green);padding:26px 28px 22px;position:relative}
+.lcard-top::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rose),var(--gold),var(--teal))}
+.logo-text{font-family:'Fraunces',serif;font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.3px}
+.lcard-body{padding:28px}
+.lcard-title{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:900;color:var(--green);margin-bottom:6px}
+.lcard-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+.lcard-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--green);outline:none;background:var(--cream);margin-bottom:12px}
+.lcard-input:focus{border-color:var(--teal);background:#fff}
+.lcard-btn{width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.lcard-msg{margin-top:12px;font-size:13px;font-weight:600;min-height:18px;text-align:center}
+.lcard-msg.success{color:var(--teal)}.lcard-msg.error{color:var(--dn)}
+#appScreen{display:none}
+#appScreen.show{display:block}
+.header{background:var(--green);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rose),var(--gold),var(--teal))}
+.header-right{display:flex;align-items:center;gap:8px}
+.header-name{font-family:'Fraunces',serif;font-size:.85rem;font-style:italic;color:rgba(255,255,255,.7)}
+.sync-status{font-size:10px;font-weight:700;color:rgba(255,255,255,.4)}
+.day-toggle{background:var(--white);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;position:sticky;top:51px;z-index:100}
+.day-btn{flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:var(--cream);font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center}
+.day-btn.active{background:var(--green);border-color:var(--green);color:#fff}
+.day-btn .day-label{display:block;font-size:9px;font-weight:400;opacity:.7;margin-top:2px}
+.week-nav{background:var(--white);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:99px;z-index:99}
+.week-nav::-webkit-scrollbar{display:none}
+.week-btn{flex-shrink:0;padding:4px 10px;border-radius:16px;border:1.5px solid var(--border);background:var(--cream);font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer}
+.week-btn.active{background:var(--green);border-color:var(--green);color:#fff}
+.week-btn.has-data{border-color:var(--teal);color:var(--teal)}
+.container{max-width:720px;margin:0 auto;padding:14px 13px 100px}
+.week-meta{margin-bottom:12px;padding:0 4px}
+.week-label{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:900}
+.week-label span{font-style:italic;color:var(--gold)}
+.rir-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-top:4px;background:#edf2f0;color:var(--green)}
+.section-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px 2px}
+.exercise{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.exercise.priority{border-color:var(--gold);border-width:2px}
+.exercise.circuit{border-color:var(--teal);background:#f7fcfd}
+.ex-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.ex-name{font-weight:700;font-size:14px;color:var(--green);flex:1}
+.ex-tag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-top:2px}
+.tag-compound{background:#edf2f0;color:var(--green)}
+.tag-isolation{background:#fdf6ec;color:var(--gold)}
+.tag-core{background:#eef7f9;color:var(--teal)}
+.tag-upper{background:#f0edf8;color:#6c3483}
+.tag-carry{background:#eef7f9;color:var(--teal)}
+.ex-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.badge-reps{background:#fce8ef;color:var(--rose)}
+.badge-rir{background:#eef7f9;color:var(--teal)}
+.ex-note{font-size:11px;color:var(--teal);font-style:italic;padding:5px 8px;background:#eef7f9;border-radius:6px;margin-bottom:7px;line-height:1.5}
+.set-hdr{display:grid;grid-template-columns:20px 1fr 1fr 1fr 44px;gap:4px;margin-bottom:3px}
+.set-row{display:grid;grid-template-columns:20px 1fr 1fr 1fr 44px;gap:4px;align-items:center;margin-bottom:3px}
+.col-hdr{font-size:9px;font-weight:800;text-transform:uppercase;color:var(--muted);text-align:center}
+.set-num{font-size:11px;color:var(--muted);font-weight:700;text-align:center}
+input[type="text"]{width:100%;background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:5px 3px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--green);text-align:center;outline:none}
+input[type="text"]:focus{border-color:var(--teal);background:#fff}
+input::placeholder{color:#b7b7b7;font-size:14px;opacity:1}
+.vol-bar{margin-top:6px;padding:6px 9px;background:var(--cream);border-radius:8px;border:1px solid var(--border)}
+.vol-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.vol-num{font-size:11px;font-weight:700}
+.vol-diff{font-size:11px;font-weight:700}
+.vol-track{height:3px;background:var(--border);border-radius:4px;overflow:hidden}
+.vol-fill{height:100%;border-radius:4px;transition:width .3s}
+.notes-block{background:#fafaf7;border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:10px}
+.notes-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
+textarea{width:100%;background:#fff;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--green);outline:none;resize:none;height:48px}
+textarea:focus{border-color:var(--teal)}
+.save-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:10px 16px;display:flex;gap:10px;align-items:center;z-index:100}
+.btn-save{flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.save-msg{font-size:12px;color:var(--teal);font-weight:700;display:none;min-width:80px}
+</style>
+</head>
+<body>
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="lcard-top"><div class="logo-text">tal&coaching</div></div>
+    <div class="lcard-body">
+      <div class="lcard-title">Log in</div>
+      <div class="lcard-sub">Enter your email address. You will receive a magic link to log in.</div>
+      <input class="lcard-input" type="email" id="loginEmail" placeholder="your@email.com">
+      <button class="lcard-btn" id="loginBtn" onclick="sendMagicLink()">Send login link</button>
+      <div class="lcard-msg" id="loginMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <div class="header">
+    <div class="logo-text">tal&coaching</div>
+    <div class="header-right">
+      <span class="header-name">Wouter</span>
+      <span class="sync-status" id="syncStatus">loading...</span>
+    </div>
+  </div>
+
+  <div class="day-toggle">
+<button class="day-btn active" id="btn0" onclick="setDay(0)">Day 1<span class="day-label">Squat + Bench</span></button>
+<button class="day-btn" id="btn1" onclick="setDay(1)">Day 2<span class="day-label">Hinge + Pull</span></button>
+</div>
+
+  <div class="week-nav" id="weekNav"></div>
+  <div class="container" id="mainContent"></div>
+
+  <div class="save-bar">
+    <button class="btn-save" onclick="saveWeek()">Save</button>
+    <div class="save-msg" id="saveMsg">Saved</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kccimgucvfjmyiltaryg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjY2ltZ3VjdmZqbXlpbHRhcnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzcxMDAsImV4cCI6MjA5NDc1MzEwMH0.fBy4Dwr2D96gqNMfIN_6oZnZjdbwukxaoCD0rQHtLdo';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const CLIENT = 'wouter';
+const WEEKS = 8;
+let CW = 1, CD = 0;
+
+function getRIR(w){
+  if(w<=2) return 'RIR 3-4';
+  if(w<=4) return 'RIR 2-3';
+  if(w<=6) return 'RIR 1-2';
+  return 'RIR 1';
+}
+
+const SCHEMA = [
+{label:'Day 1',focus:'Squat + Bench',sections:[
+{title:'Lower Body',exercises:[
+{name:'Barbell Squat',tag:'compound',sets:3,reps:'6-8',note:'Brace voor iedere herhaling en zak gecontroleerd.'},
+{name:'Lying Leg Curl',tag:'lower',sets:3,reps:'10-15',note:'Buig gecontroleerd en laat rustig terugkomen.'}]},
+{title:'Upper Body',exercises:[
+{name:'Bench Press',tag:'compound',sets:3,reps:'8-10',note:'Schouderbladen stabiel en gecontroleerd laten zakken.'},
+{name:'Lat Pulldown',tag:'upper',sets:3,reps:'8-12',note:'Borst omhoog en trek de ellebogen richting je zij.'},
+{name:'Cable Shoulder Press',tag:'upper',sets:2,reps:'10-15',note:'Romp stevig en gecontroleerd boven het hoofd drukken.'}]},
+{title:'Carry',exercises:[
+{name:'Farmer Walk',tag:'core',sets:3,reps:'20-40 m',note:'Loop rechtop en houd romp en schouders stabiel.'}]}]},
+{label:'Day 2',focus:'Hinge + Pull',sections:[
+{title:'Lower Body',exercises:[
+{name:'Romanian Deadlift',tag:'compound',sets:3,reps:'6-10',note:'Heupen naar achteren en de stang dicht langs het lichaam.'},
+{name:'Leg Press',tag:'compound',sets:3,reps:'8-12',note:'Zak gecontroleerd en duw vanuit de hele voet weg.'},
+{name:'Walking Lunges',tag:'lower',sets:3,reps:'8-12 p.b.',note:'Neem gecontroleerde stappen en blijf stabiel.'}]},
+{title:'Upper Body',exercises:[
+{name:'One-Arm Cable Row',tag:'upper',sets:3,reps:'8-12 p.k.',note:'Blijf stabiel en trek de elleboog naar achteren.'},
+{name:'DB Chest Fly',tag:'upper',sets:2,reps:'10-15',note:'Gecontroleerd zakken met lichte buiging in de ellebogen.'},
+{name:'One-Arm Landmine Press',tag:'upper',sets:2,reps:'8-12 p.k.',note:'Span de romp aan en druk schuin omhoog.'},
+{name:'Face Pull',tag:'upper',sets:3,reps:'12-20',note:'Trek richting ooghoogte en houd de schouderbladen gecontroleerd.'}]},
+{title:'Core',exercises:[
+{name:'Pallof Press',tag:'core',sets:2,reps:'10-15 p.k.',note:'Houd de romp recht en weersta rotatie.'}]}]}
+];
+
+function fKey(w,di,si,ei,s,t){return `wouter_v1_w${w}_d${di}_s${si}_e${ei}_s${s}_${t}`;}
+function nKey(w,di){return `wouter_v1_w${w}_d${di}_notes`;}
+
+async function sbUpsert(row){
+  try{
+    await fetch(SUPABASE_URL+'/rest/v1/training_sessions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify(row)
+    });
+  }catch(e){console.warn('sync failed',e);}
+}
+
+async function sbLoad(w,di){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/training_sessions?client=eq.${CLIENT}&week=eq.${w}&day=eq.${di}`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
+    const rows=await r.json();
+    if(Array.isArray(rows)) rows.forEach(row=>{
+      if(row.weight) localStorage.setItem(fKey(w,di,row.section||0,row.exercise,row.set_num,'w'),row.weight);
+      if(row.reps)   localStorage.setItem(fKey(w,di,row.section||0,row.exercise,row.set_num,'r'),row.reps);
+      if(row.rir)    localStorage.setItem(fKey(w,di,row.section||0,row.exercise,row.set_num,'rir'),row.rir);
+      if(row.notes)  localStorage.setItem(nKey(w,di),row.notes);
+    });
+  }catch(e){console.warn('load failed',e);}
+}
+
+function getVol(w,di,si,ei){
+  const ex=SCHEMA[di].sections[si].exercises[ei];
+  let t=0;
+  for(let s=0;s<ex.sets;s++){
+    const wv=parseFloat(localStorage.getItem(fKey(w,di,si,ei,s,'w')))||0;
+    const rv=parseFloat(localStorage.getItem(fKey(w,di,si,ei,s,'r')))||0;
+    t+=wv*rv;
+  }
+  return Math.round(t);
+}
+
+function getPrev(w,di,si,ei){
+  for(let pw=w-1;pw>=1;pw--){const v=getVol(pw,di,si,ei);if(v>0) return {vol:v,week:pw};}
+  return null;
+}
+
+function getPrevWeight(w,di,si,ei,s){
+  if(w<=1) return '';
+  return localStorage.getItem(fKey(w-1,di,si,ei,s,'w'))||'';
+}
+function getPrevReps(w,di,si,ei,s){
+  if(w<=1) return '';
+  return localStorage.getItem(fKey(w-1,di,si,ei,s,'r'))||'';
+}
+
+function volHTML(di,si,ei){
+  const cur=getVol(CW,di,si,ei);
+  const prev=getPrev(CW,di,si,ei);
+  let diffTxt='First measurement',diffColor='var(--muted)';
+  if(prev){
+    const d=cur-prev.vol;
+    if(d>0){diffTxt='+'+d+' kg (w'+prev.week+')';diffColor='var(--up)';}
+    else if(d<0){diffTxt=d+' kg (w'+prev.week+')';diffColor='var(--dn)';}
+    else diffTxt='Same';
+  }
+  let maxVol=cur;
+  for(let w2=1;w2<=WEEKS;w2++){const v=getVol(w2,di,si,ei);if(v>maxVol)maxVol=v;}
+  const pct=maxVol>0?Math.round((cur/maxVol)*100):0;
+  const barColor=cur===0?'var(--border)':!prev?'var(--teal)':cur>=prev.vol?'var(--up)':'var(--dn)';
+  return `<div class="vol-bar"><div class="vol-top"><span class="vol-num">${cur>0?cur+' kg':'Fill in below'}</span><span class="vol-diff" style="color:${diffColor}">${diffTxt}</span></div><div class="vol-track"><div class="vol-fill" style="width:${pct}%;background:${barColor}"></div></div></div>`;
+}
+
+function buildNav(){
+  const nav=document.getElementById('weekNav');
+  nav.innerHTML='';
+  for(let w=1;w<=WEEKS;w++){
+    const btn=document.createElement('button');
+    btn.className='week-btn'+(w===CW?' active':'');
+    let hasData=false;
+    SCHEMA[CD].sections.forEach((sec,si)=>{
+      sec.exercises.forEach((ex,ei)=>{
+        for(let s=0;s<ex.sets;s++) if(localStorage.getItem(fKey(w,CD,si,ei,s,'w'))) hasData=true;
+      });
+    });
+    if(hasData&&w!==CW) btn.classList.add('has-data');
+    btn.textContent='W'+w;
+    btn.onclick=async()=>{CW=w;await sbLoad(w,CD);buildNav();renderWeek();};
+    nav.appendChild(btn);
+    if(w===CW) setTimeout(()=>btn.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'}),50);
+  }
+}
+
+function renderWeek(){
+  const c=document.getElementById('mainContent');
+  const rir=getRIR(CW);
+  const dayDef=SCHEMA[CD];
+  c.innerHTML=`<div class="week-meta"><div class="week-label">Week <span>${CW}</span> of ${WEEKS}</div><div class="rir-badge">${rir}</div></div>`;
+
+  dayDef.sections.forEach((sec,si)=>{
+    c.innerHTML+=`<div class="section-label">${sec.title}</div>`;
+    sec.exercises.forEach((ex,ei)=>{
+      const vals=[];
+      for(let s=0;s<ex.sets;s++){
+        vals.push({
+          w:localStorage.getItem(fKey(CW,CD,si,ei,s,'w'))||'',
+          r:localStorage.getItem(fKey(CW,CD,si,ei,s,'r'))||'',
+          rir:localStorage.getItem(fKey(CW,CD,si,ei,s,'rir'))||''
+        });
+      }
+      let rows=`<div class="set-hdr"><span></span><span class="col-hdr">Set</span><span class="col-hdr">Kg</span><span class="col-hdr">Reps</span><span class="col-hdr">RIR</span></div>`;
+      for(let s=0;s<ex.sets;s++){
+        rows+=`<div class="set-row">
+          <div class="set-num">${s+1}</div>
+          <div style="font-size:10px;color:var(--muted);text-align:center">set ${s+1}</div>
+          <input type="text" placeholder="${getPrevWeight(CW,CD,si,ei,s)||'-'}" value="${vals[s].w}" data-si="${si}" data-ei="${ei}" data-s="${s}" data-t="w" oninput="liveUpdate(this)" onchange="autoSave(this)">
+          <input type="text" placeholder="${getPrevReps(CW,CD,si,ei,s)||'-'}" value="${vals[s].r}" data-si="${si}" data-ei="${ei}" data-s="${s}" data-t="r" oninput="liveUpdate(this)" onchange="autoSave(this)">
+          <input type="text" placeholder="?" value="${vals[s].rir}" data-si="${si}" data-ei="${ei}" data-s="${s}" data-t="rir" onchange="autoSave(this)">
+        </div>`;
+      }
+      c.innerHTML+=`<div class="exercise">
+        <div class="ex-top"><div class="ex-name">${ex.name}</div><div class="ex-tag tag-${ex.tag}">${ex.tag}</div></div>
+        <div class="ex-badges"><span class="badge badge-reps">${ex.sets}x ${ex.reps}</span><span class="badge badge-rir">${rir}</span></div>
+        ${ex.note?`<div class="ex-note">${ex.note}</div>`:''}
+        ${rows}
+        <div id="vol-${si}-${ei}">${volHTML(CD,si,ei)}</div>
+      </div>`;
+    });
+  });
+
+  const savedNotes=localStorage.getItem(nKey(CW,CD))||'';
+  c.innerHTML+=`<div class="notes-block"><label class="notes-label">Notes</label><textarea placeholder="How did it feel?" data-di="${CD}" onchange="saveNote(this)">${savedNotes}</textarea></div>`;
+}
+
+function autoSave(inp){
+  localStorage.setItem(fKey(CW,CD,parseInt(inp.dataset.si),parseInt(inp.dataset.ei),parseInt(inp.dataset.s),inp.dataset.t),inp.value);
+}
+
+function saveNote(ta){localStorage.setItem(nKey(CW,parseInt(ta.dataset.di)),ta.value);}
+
+function liveUpdate(inp){
+  autoSave(inp);
+  const si=parseInt(inp.dataset.si),ei=parseInt(inp.dataset.ei);
+  const volEl=document.getElementById('vol-'+si+'-'+ei);
+  if(volEl) volEl.innerHTML=volHTML(CD,si,ei);
+}
+
+async function saveWeek(){
+  const msg=document.getElementById('saveMsg');
+  msg.style.display='block';msg.textContent='Saving...';
+  document.querySelectorAll('input[data-si]').forEach(i=>autoSave(i));
+  document.querySelectorAll('textarea[data-di]').forEach(t=>saveNote(t));
+  const promises=[];
+  SCHEMA[CD].sections.forEach((sec,si)=>{
+    sec.exercises.forEach((ex,ei)=>{
+      for(let s=0;s<ex.sets;s++){
+        const w=localStorage.getItem(fKey(CW,CD,si,ei,s,'w'))||'';
+        const r=localStorage.getItem(fKey(CW,CD,si,ei,s,'r'))||'';
+        const rir=localStorage.getItem(fKey(CW,CD,si,ei,s,'rir'))||'';
+        if(w||r||rir) promises.push(sbUpsert({client:CLIENT,week:CW,day:CD,section:si,exercise:ei,set_num:s,weight:w,reps:r,rir:rir}));
+      }
+    });
+  });
+  const notes=localStorage.getItem(nKey(CW,CD))||'';
+  if(notes) promises.push(sbUpsert({client:CLIENT,week:CW,day:CD,section:-1,exercise:-1,set_num:-1,notes:notes}));
+  await Promise.all(promises);
+  buildNav();
+  msg.textContent='Saved';
+  setTimeout(()=>msg.style.display='none',2500);
+}
+
+async function setDay(d){
+  CD=d;
+  SCHEMA.forEach((_,i)=>document.getElementById('btn'+i)?.classList.toggle('active',i===d));
+  await sbLoad(CW,d);
+  buildNav();
+  renderWeek();
+  window.scrollTo(0,0);
+}
+
+let sx=0,sy=0;
+document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',async e=>{
+  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){
+    if(dx<0&&CW<WEEKS){CW++;await sbLoad(CW,CD);buildNav();renderWeek();}
+    else if(dx>0&&CW>1){CW--;await sbLoad(CW,CD);buildNav();renderWeek();}
+  }
+},{passive:true});
+
+async function sendMagicLink(){
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!email){showMsg('Please enter an email address.','error');return;}
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='Sending...';
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+  if(error) showMsg('Error: '+error.message,'error');
+  else showMsg('Check your email for the login link!','success');
+  btn.disabled=false;btn.textContent='Send login link';
+}
+
+function showMsg(msg,type){const el=document.getElementById('loginMsg');el.textContent=msg;el.className='lcard-msg '+type;}
+
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('show');
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').classList.add('show');
+}
+
+async function startApp(){
+  await sbLoad(CW,CD);
+  buildNav();
+  renderWeek();
+  document.getElementById('syncStatus').textContent='synced';
+}
+
+async function checkAuth(){
+  showApp();
+  await startApp();
+}
+checkAuth();
+</script>
+</body>
+</html>
